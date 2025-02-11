@@ -65,7 +65,7 @@
 		<div class="form-group">
 				<div class="text-center">
 				<p>Наценка выгрузки в Seller Wildberries, расчитывается от цены товара с сайта proskit-market.ru</p>
-				<p>Запускается автоматически каждые 2 часа. (Настройка в хостинг панели cron-планировщик)</p>
+				<p>Запускается автоматически каждые 3 часа. (Настройка в хостинг панели cron-планировщик)</p>
 				<p>Файл для отладки в формате JSON <a href="<?php echo $feed_uri; ?>" style="font-weight: bold;" target="_blank">Ссылка</a></p>
 			</div>
 		</div>
@@ -85,11 +85,11 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", (event) => {
-  const runNowBtn = document.querySelector('#run_now_command');
-  const saveBtn = document.querySelector('#save_settings_btn');
-  const progressBarBox = document.querySelector('#progress-bar-box');
-  
-  runNowBtn.addEventListener('click', () => {
+  	const runNowBtn = document.querySelector('#run_now_command');
+  	const saveBtn = document.querySelector('#save_settings_btn');
+  	const progressBarBox = document.querySelector('#progress-bar-box');
+	
+  	runNowBtn.addEventListener('click', () => {
 	  runNowBtn.setAttribute('disabled', true);
 	  saveBtn.setAttribute('disabled', true);
 

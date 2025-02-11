@@ -73,7 +73,7 @@ class ControllerModuleWbUpdater extends Controller {
 				
 		$data['action'] = $this->url->link('module/wb_updater', 'token=' . $this->session->data['token'], 'SSL');
 		$data['feed_uri'] = $this->url->link('module/wb_updater/feed', 'token=' . $this->session->data['token'], 'SSL');
-		$data['update_now_uri'] = $this->url->link('module/wb_updater/update_now?forced=true', 'token=' . $this->session->data['token'], 'SSL');
+		$data['update_now_uri'] = $this->url->link('module/wb_updater/update_now', 'token=' . $this->session->data['token'], 'SSL');
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
@@ -125,9 +125,9 @@ class ControllerModuleWbUpdater extends Controller {
 		
 		$settings = $this->model_setting_setting->getSetting('wb_updater');
 
-		$isActive = $settings['wb_updater_is_active'];
-		
-		 if((bool)$isAcstive == false){
+		$isActive = (bool)$settings['wb_updater_is_active'];
+
+		 if(!$isActive){
 		 	return;
 		 }
 
