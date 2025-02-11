@@ -12,9 +12,15 @@ class ControllerModuleWbUpdater extends Controller {
 		
 		if ($this->request->server['REQUEST_METHOD'] == 'POST') {
 			 //Сохранение настроек на странице админки
+
+			 if (isset($this->request->post['is_active'])) {
+				$this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_is_active', (bool)$this->request->post['is_active']);
+			}
+			
 			 if (isset($this->request->post['general_discount'])) {
 				 $this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_general_discount', $this->request->post['general_discount']);
 			 }
+
 			 if (isset($this->request->post['api_key'])) {
 				 $this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_api_key', $this->request->post['api_key']);
 			 }
@@ -49,6 +55,9 @@ class ControllerModuleWbUpdater extends Controller {
 		
 		//Наценка от цены сайта
 		$data['general_discount'] = isset($settings['wb_updater_general_discount']) ? $settings['wb_updater_general_discount'] : '0';
+
+		//Обновление по таймеру включено/выключено
+		$data['is_active'] = isset($settings['wb_updater_is_active']) ? (bool)$settings['wb_updater_is_active'] : false;
 		
 		
 		$logs = $this->model_module_wb_updater->GetLastLogs();
@@ -64,7 +73,7 @@ class ControllerModuleWbUpdater extends Controller {
 				
 		$data['action'] = $this->url->link('module/wb_updater', 'token=' . $this->session->data['token'], 'SSL');
 		$data['feed_uri'] = $this->url->link('module/wb_updater/feed', 'token=' . $this->session->data['token'], 'SSL');
-		$data['update_now_uri'] = $this->url->link('module/wb_updater/update_now', 'token=' . $this->session->data['token'], 'SSL');
+		$data['update_now_uri'] = $this->url->link('module/wb_updater/update_now?forced=true', 'token=' . $this->session->data['token'], 'SSL');
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
@@ -115,6 +124,13 @@ class ControllerModuleWbUpdater extends Controller {
 		$this->load->model('module/wb_updater');
 		
 		$settings = $this->model_setting_setting->getSetting('wb_updater');
+
+		$isActive = $settings['wb_updater_is_active'];
+		
+		 if((bool)$isAcstive == false){
+		 	return;
+		 }
+
 		$api_key = $settings['wb_updater_api_key'];
 		$discount = $settings['wb_updater_general_discount'];
 		$checked_stock_ids = $settings['wb_updater_checked_stocks_ids'];

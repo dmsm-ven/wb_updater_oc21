@@ -2,9 +2,21 @@
 
 <div id="content" class="ozon_seller_settings_admin_container">
 	<h1>Настройка синхронизации цен с Seller Wildberries</h1>
-	<h1 style="color: blue;">В процессе разработки (не использовать)</h1>
 	
 	<form class="form-horizontal" action="<?php echo $action; ?>" id="updater_form" method="post">
+		
+		<div class="form-group">
+			<label class="control-label col-sm-2" 
+				style="display: flex; justify-content: end; align-items: start; margin-top: 0px; padding-top: 0px;" 
+				for="is_active">Обновление по таймеру</label>
+			<div class="col-sm-10"> 
+				<select name="is_active">
+					<option value="1" <?php echo ($is_active ? "selected" : ""); ?>>Активно</option>
+					<option value="0" <?php echo ($is_active ? "" : "selected"); ?>>Выключено</option>
+				</select>        
+			</div>
+		</div>
+
 		<div class="form-group">
 			<label class="control-label col-sm-2" for="api_key">API ключ Wildberries</label>
 			<div class="col-sm-10">          
