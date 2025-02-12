@@ -65,6 +65,7 @@
 		<div class="form-group">
 				<div class="text-center">
 				<p>Наценка выгрузки в Seller Wildberries, расчитывается от цены товара с сайта proskit-market.ru</p>
+				<p>Если товар менее 500 руб. то применяется коэф. x2.5, от 500 до 1000 руб., то коэф. x2.0</p>
 				<p>Запускается автоматически каждые 3 часа. (Настройка в хостинг панели cron-планировщик)</p>
 				<p>Файл для отладки в формате JSON <a href="<?php echo $feed_uri; ?>" style="font-weight: bold;" target="_blank">Ссылка</a></p>
 			</div>

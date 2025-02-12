@@ -1,21 +1,19 @@
 <?php
 class ModelModuleWbUpdater extends Model {
 	
-	public function getProducts($checked_stock_ids){
+	public function getProducts($allowedStocksIds){
 		
-		if(!$checked_stock_ids){
-			return [];
+		if(!$allowedStocksIds || strlen(trim($allowedStocksIds, ' \t,')) == 0){
+			$allowedStocksIds = 0;
 		}
 		
 		$sql = "SELECT CONCAT('PSM-', p.product_id) as shopSku, 
 					ROUND(p.price, 0) as price, 
-					SUM(IFNULL(pts.quantity, 0)) as quantity				
+					SUM(IFNULL(IF(pts.stock_id IN (" . $allowedStocksIds  ."), pts.quantity, 0), 0)) as quantity	
 				FROM oc_product p 
 					JOIN oc_product_description pd ON (p.product_id = pd.product_id) 
 					LEFT JOIN oc_product_to_stock pts ON (p.product_id = pts.product_id)
-				WHERE p.status = 1 AND 
-					p.price > 0 AND
-					FIND_IN_SET(pts.stock_id, '" . $checked_stock_ids . "') > 0						
+				WHERE p.status = 1		
 				GROUP BY p.product_id
 				ORDER BY p.sku";
 		$query = $this->db->query($sql);

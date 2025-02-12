@@ -88,25 +88,30 @@ class ControllerModuleWbUpdater extends Controller {
 		$this->load->model('setting/setting');		
 		
 		$settings = $this->model_setting_setting->getSetting('wb_updater');
-		$checked_stock_ids = isset($settings['wb_updater_checked_stocks_ids']) ? $settings['wb_updater_checked_stocks_ids'] : '';
+		$checked_stock_ids = isset($settings['wb_updater_checked_stocks_ids']) ? $settings['wb_updater_checked_stocks_ids'] : '0';
 		$discount = $settings['wb_updater_general_discount'];
 		
 		$products = $this->model_module_wb_updater->getProducts($checked_stock_ids);
 		$this->AppendDiscounts($products, $discount);
 			
-		$api_key = $settings['wb_updater_api_key'];
-		$this->api_client = new WbApiClient($api_key, $this->model_module_wb_updater);
-		$wbPidMaps = $this->api_client->ReceiveWbProductsData();
+		// $api_key = $settings['wb_updater_api_key'];
+		// $this->api_client = new WbApiClient($api_key, $this->model_module_wb_updater);
+		// try{
+		// $wbPidMaps = $this->api_client->ReceiveWbProductsData();
+		// }catch(Exception $e){
+			// header('Content-Type: text/plain');
+			// echo 'Ошибка запроса к API Wildberries: ' . $e->getMessage() . '\r\n';
+		// }
 		
 		$wbProducts = [];
 		foreach($products as $product){
 			$wbProduct = $product;
 			
-			$wbProduct['wb_barcode'] = array_key_exists($product['shopSku'], $wbPidMaps['barcode_map']) ? 
-				$wbPidMaps['barcode_map'][$product['shopSku']] : 'Не добавлен в личном кабинете';
+			//$wbProduct['wb_barcode'] = array_key_exists($product['shopSku'], $wbPidMaps['barcode_map']) ? 
+				//$wbPidMaps['barcode_map'][$product['shopSku']] : 'Не добавлен в личном кабинете';
 			
-			$wbProduct['nmid_map'] = array_key_exists($product['shopSku'], $wbPidMaps['nmid_map']) ? 
-				$wbPidMaps['nmid_map'][$product['shopSku']] : 'Не добавлен в личном кабинете';
+			//$wbProduct['nmid_map'] = array_key_exists($product['shopSku'], $wbPidMaps['nmid_map']) ? 
+				//$wbPidMaps['nmid_map'][$product['shopSku']] : 'Не добавлен в личном кабинете';
 			
 			$wbProducts[] = $wbProduct;
 		}
