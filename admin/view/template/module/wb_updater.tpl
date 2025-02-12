@@ -45,6 +45,42 @@
 		</div>
  
 		<div class="form-group">
+			<label class="control-label col-sm-2">Дополнительная наценка по условию</label>
+			<div class="col-sm-10 discount_step__box">
+				<?php $i = 0; ?>
+				<?php foreach($discount_steps as $step => $ratio) {?>
+				<div class="discount_step__item">
+					<div class="discount_step__min_border">
+						<label for="step_key<?php echo $i;?>">Если цена менее (руб.)</label>
+						<input type="number" step="10" value="<?php echo $step; ?>" class="form-control" name="step_key<?php echo $i;?>" id="step_key<?php echo $i;?>"></input>
+					</div>
+					<div class="discount_step__ratio">
+						<label for="step_value<?php echo $i;?>">То коэффициент</label>
+						<input type="number" step="0.1" value="<?php echo $ratio; ?>" class="form-control" name="step_value<?php echo $i;?>" id="step_value<?php echo $i;?>"></input>
+					</div>
+					<div class="discount_step__remove">
+						<button type="button" class="btn btn-sm btn_remove_step" data-for="step_key<?php echo $i;?>">Убрать</button>
+					</div>
+				</div>
+				<?php $i++;} ?>
+				<h3>Добавить новый коэффициент</h3>
+				<div class="discount_step__item">
+					<div class="discount_step__min_border">
+						<label for="step_key<?php echo $i;?>">Если цена менее (руб.)</label>
+						<input type="number" step="10" value="" class="form-control" name="step_key_new" id="step_key_new"></input>
+					</div>
+					<div class="discount_step__ratio">
+						<label for="step_value<?php echo $i;?>">То коэффициент</label>
+						<input type="number" step="0.1" value="" class="form-control" name="step_value_new" id="step_value_new"></input>
+					</div>
+					<div class="discount_step__remove">
+						<button type="submit" class="btn btn-sm" id="btn_add_step">Добавить</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="form-group">
 			  <label class="control-label col-sm-2">Остатки складов</label>
 			  <div class="col-sm-10">
 			  <fieldset>
@@ -56,30 +92,30 @@
 		  </div>
  
  		<div class="form-group">
-		<label class="control-label col-sm-2" for="last_update">Результат недавних выполнений</label>
-		<div class="col-sm-10">          
-			<textarea style="min-height: 120px; width: 75%;"><?php echo $last_update_lines; ?></textarea>
-		</div>
+			<label class="control-label col-sm-2" for="last_update">Результат недавних выполнений</label>
+			<div class="col-sm-10">          
+				<textarea style="min-height: 120px; width: 75%;"><?php echo $last_update_lines; ?></textarea>
+			</div>
 		</div>
  
 		<div class="form-group">
 				<div class="text-center">
-				<p>Наценка выгрузки в Seller Wildberries, расчитывается от цены товара с сайта proskit-market.ru</p>
-				<p>Если товар менее 500 руб. то применяется коэф. x2.5, от 500 до 1000 руб., то коэф. x2.0</p>
-				<p>Запускается автоматически каждые 3 часа. (Настройка в хостинг панели cron-планировщик)</p>
+				<p>Наценка выгрузки в Seller Wildberries, базовая цена расчитывается от цены товара с сайта</p>
+				<p><?php echo $discount_steps_description; ?></p>
+				<p><?php echo $cron_timer_description; ?></p>
 				<p>Файл для отладки в формате JSON <a href="<?php echo $feed_uri; ?>" style="font-weight: bold;" target="_blank">Ссылка</a></p>
 			</div>
 		</div>
 		
 		<div class="form-group">        
-      <div class="text-center">
-        <button id="save_settings_btn" type="submit" class="btn btn-default btn-success">Сохранить настройки</button>
-		<button id="run_now_command" type="button" class="btn btn-default btn-primary">Выполнить обновление сейчас</button>
-		<div class="progress" style="visibility: hidden; margin-top: 12px;" id="progress-bar-box">
-			<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
-		</div>
-      </div>
-    </div>
+			<div class="text-center">
+				<button id="save_settings_btn" type="submit" class="btn btn-default btn-success">Сохранить настройки</button>
+				<button id="run_now_command" type="button" class="btn btn-default btn-primary">Выполнить обновление сейчас</button>
+				<div class="progress" style="visibility: hidden; margin-top: 12px;" id="progress-bar-box">
+					<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+				</div>
+			</div>
+    	</div>
 	</form>
   
 </div>
@@ -104,6 +140,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
 		.catch(function(res){ 
 			console.log('ERROR: ' + res);
 			progressBarBox.style.visibility = 'collapse';
+		});
+	});
+
+	document.querySelectorAll('.btn_remove_step').forEach((btn) => 
+	{	
+		btn.addEventListener('click', async () => {
+			btn.disabled = true;
+			const stepKeyValue = parseInt(document.querySelector('#' + btn.dataset.for).value);
+
+			const res = await fetch('<?php echo html_entity_decode($remove_step_uri); ?>&key_to_delete=' + stepKeyValue, {
+				method: "POST"
+			});
+			
+			window.location.reload();
+						
 		});
 	});
 });

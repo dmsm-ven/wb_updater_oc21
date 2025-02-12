@@ -1,14 +1,20 @@
 <?php
 class ControllerModuleWbUpdater extends Controller {	
 	private $api_client;
+	private $UPDATE_INTERVAL_IN_HOURS = 3;
 	
 	public function index() {
 		$this->document->setTitle('Интеграция сайта с seller.wildberries.ru');		
 		$this->load->model('module/wb_updater');		
 		$this->load->model('setting/setting');	
 		$this->load->model('module/product_stock');		
-		
+
+		$settings = $this->model_setting_setting->getSetting('wb_updater');
 		$allStocks = $this->model_module_product_stock->getStocks();
+		$discount_steps = isset($settings['wb_updater_discount_steps']) ? $settings['wb_updater_discount_steps'] : [];	
+		if($discount_steps){
+			ksort($discount_steps);
+		}
 		
 		if ($this->request->server['REQUEST_METHOD'] == 'POST') {
 			 //Сохранение настроек на странице админки
@@ -34,13 +40,34 @@ class ControllerModuleWbUpdater extends Controller {
 			$checkedStocksIdsToSaveString = !empty($checkedStocksIdsToSave) ? implode(',', $checkedStocksIdsToSave) : '';
 			$this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_checked_stocks_ids' , $checkedStocksIdsToSaveString);
 
+			//Сохраняем границы наценок
+			$hasNewStepKey = isset($this->request->post['step_key_new']) && $this->request->post['step_key_new'];
+			$hasNewStepValue = isset($this->request->post['step_value_new']) && $this->request->post['step_value_new'];
+			if($hasNewStepKey && $hasNewStepValue)
+			{
+				$newStepsData = $discount_steps;
+				$newStepsData[$this->request->post['step_key_new']] = $this->request->post['step_value_new'];
+				ksort($newStepsData);
+				$this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_discount_steps' , (array)$newStepsData);
+			}
+			
 			$this->response->redirect($this->url->link('module/wb_updater', 'token=' . $this->session->data['token'], 'SSL'));
 		}
-					
-		$settings = $this->model_setting_setting->getSetting('wb_updater');
-		
-		$checkedStockIds = isset($settings['wb_updater_checked_stocks_ids']) ? explode(',', $settings['wb_updater_checked_stocks_ids']) : [];
-			
+
+		//Дополнительные наценки по условию
+		if($discount_steps){
+			$discount_steps_description = "Применяется дополнительная наценка<br>";
+			foreach($discount_steps as $startValueInRub => $ratio){
+				$discount_steps_description .= ("если цена товара менее чем ${startValueInRub} руб., то применяется коэффициент x${ratio}<br>");
+			}
+			$data['discount_steps_description'] = trim($discount_steps_description, "<br>");
+		} else {
+			$data['discount_steps_description'] = "Дополнительных наценок по условию не добавлено";
+		}
+		$data['discount_steps'] = $discount_steps;
+
+		//Список отмеченных к выгрузке складов с остатками
+		$checkedStockIds = isset($settings['wb_updater_checked_stocks_ids']) ? explode(',', $settings['wb_updater_checked_stocks_ids']) : [];		
 		$data['checked_stocks'] = [];
 		foreach($allStocks as $stock){
 			$stock['checked'] = in_array($stock['stock_id'], $checkedStockIds);
@@ -49,7 +76,10 @@ class ControllerModuleWbUpdater extends Controller {
 		
 		//Сохранить
 		$data['action'] = $this->url->link('module/wb_updater', 'token=' . $this->session->data['token'] . $url, 'SSL');
-				
+		
+		//Ссылка на метод удаления элемента скидки
+		$data['remove_step_uri'] = $this->url->link('module/wb_updater/remove_step', 'token=' . $this->session->data['token'] . $url, 'SSL');
+		
 		//API ключ WB, переодически должен менятся
 		$data['api_key'] = isset($settings['wb_updater_api_key']) ? $settings['wb_updater_api_key'] : '0000-0000-0000-0000';
 		
@@ -59,7 +89,8 @@ class ControllerModuleWbUpdater extends Controller {
 		//Обновление по таймеру включено/выключено
 		$data['is_active'] = isset($settings['wb_updater_is_active']) ? (bool)$settings['wb_updater_is_active'] : false;
 		
-		
+		$data['cron_timer_description'] = "Синхронизация запускается автоматически каждые " . $this->UPDATE_INTERVAL_IN_HOURS . " часа. (Настройка в хостинг панели cron-планировщик)";
+
 		$logs = $this->model_module_wb_updater->GetLastLogs();
 		$logsRows = [];
 		if($logs){
@@ -81,6 +112,27 @@ class ControllerModuleWbUpdater extends Controller {
 
 		$this->response->setOutput($this->load->view('module/wb_updater.tpl', $data));
 	}
+
+	public function remove_step(){
+		if ($this->request->server['REQUEST_METHOD'] !== 'POST'){
+			return;
+		}
+
+		parse_str(html_entity_decode($this->request->server['QUERY_STRING']), $queryArray);
+		$key_to_delete = (string)$queryArray['key_to_delete'];
+
+		if($key_to_delete && (int)$key_to_delete > 0){
+			$this->load->model('setting/setting');
+			$settings = $this->model_setting_setting->getSetting('wb_updater');
+			$discount_steps = isset($settings['wb_updater_discount_steps']) ? $settings['wb_updater_discount_steps'] : [];
+
+			if($discount_steps && array_key_exists($key_to_delete, $discount_steps)){
+				unset($discount_steps[$key_to_delete]);
+				ksort($discount_steps);
+				$this->model_setting_setting->editSettingValue('wb_updater', 'wb_updater_discount_steps' , (array)$discount_steps);
+			}
+		}
+	}
 	
 	//JSON фид который нигде не используется, - нужен просто что бы примерно видеть какие данные выгружаются через API
 	public function feed(){
@@ -92,7 +144,9 @@ class ControllerModuleWbUpdater extends Controller {
 		$discount = $settings['wb_updater_general_discount'];
 		
 		$products = $this->model_module_wb_updater->getProducts($checked_stock_ids);
-		$this->AppendDiscounts($products, $discount);
+		$priceSteps = isset($settings['wb_updater_discount_steps']) ? $settings['wb_updater_discount_steps'] : [];
+
+		$this->AppendDiscounts($products, $discount, $priceSteps);
 			
 		// $api_key = $settings['wb_updater_api_key'];
 		// $this->api_client = new WbApiClient($api_key, $this->model_module_wb_updater);
@@ -139,13 +193,14 @@ class ControllerModuleWbUpdater extends Controller {
 		$api_key = $settings['wb_updater_api_key'];
 		$discount = $settings['wb_updater_general_discount'];
 		$checked_stock_ids = $settings['wb_updater_checked_stocks_ids'];
+		$price_steps = isset($settings['wb_updater_discount_steps']) ? $settings['wb_updater_discount_steps'] : [];
 			
 		$result = false;
 		$date_start = date('Y-m-d H:i:s');
 		$message = 'Неизвестная ошибка';
 		
 		try {
-			$updatedProducts = $this->ExecuteUpdate($api_key, $discount, $checked_stock_ids);
+			$updatedProducts = $this->ExecuteUpdate($api_key, $discount, $checked_stock_ids, $price_steps);
 			$result = true;
 			if($updatedProducts > 0){
 				$message = "ОК - обновлено [{$updatedProducts}] товаров";
@@ -160,7 +215,7 @@ class ControllerModuleWbUpdater extends Controller {
 		$this->model_module_wb_updater->LogUpdateResult($message, $result, $date_start, $date_end);				
 	}
 	
-	private function ExecuteUpdate($api_key, $discount, $checked_stock_ids){
+	private function ExecuteUpdate($api_key, $discount, $checked_stock_ids, $price_steps){
 		if(!$api_key){
 			throw new Exception('API ключ не был предоставлен');
 		}
@@ -173,7 +228,7 @@ class ControllerModuleWbUpdater extends Controller {
 			
 		$products = $this->model_module_wb_updater->getProducts($checked_stock_ids);
 				
-		$this->AppendDiscounts($products, $discount);
+		$this->AppendDiscounts($products, $discount, $price_steps);
 			
 		//[0] => barcode_map, [1] => nmid_map
 		$wbPidMaps = $this->api_client->ReceiveWbProductsData();		
@@ -224,26 +279,31 @@ class ControllerModuleWbUpdater extends Controller {
 	}
 	
 	//Применяем наценки и скидки на товары 
-	private function AppendDiscounts(&$products, $discount){
+	private function AppendDiscounts(&$products, $discount, $priceSteps){
 		if(!$products){
 			return;
 		}
-		
-		$priceSteps = [
-			'500' => '2.5',  //Если менее 500 руб, то * цену на 2.5
-			'1000' => '2.0' //Если менее 1000 руб, то * цену на 2		
-		];
-		
-		$i = 0;
+
+		//Пример
+		// $priceSteps = [
+		// 	'500' => '2.5',  //Если менее 500 руб, то * цену на 2.5
+		// 	'1000' => '2.0' //Если менее 1000 руб, то * цену на 2		
+		// ];
+
+		$maxStep = 0;
+		if($priceSteps){
+			$maxStep = (int)max(array_keys($priceSteps));
+		}
+
+		//1. Добавляем наценку для товаров по условию
 		foreach($products as &$product){		
 			$resultPrice = $product['price'];
-			
-			//1. Добавляем наценку на минимальную стоимость
-			if($resultPrice < 1000){
+					
+			if($priceSteps && $resultPrice < $maxStep){
 				foreach($priceSteps as $step_price => $ratio){
-					if($resultPrice < $step_price){
+					if($resultPrice < (int)$step_price){
 						
-						$resultPrice = $resultPrice * $ratio;
+						$resultPrice = $resultPrice * (float)$ratio;
 						break;
 					}	
 				}
@@ -252,7 +312,8 @@ class ControllerModuleWbUpdater extends Controller {
 			//2. Добавляем общую наценку, округляем до 10 руб.
 			$resultPrice = ceil((float)$resultPrice * ((100.0 + (float)$discount) / 100.0) / 10) * 10;
 			$product['price_with_discount'] = $resultPrice;
-		}			
+		}
+
 	}
 		
 }
