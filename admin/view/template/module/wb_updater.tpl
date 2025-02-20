@@ -59,7 +59,10 @@
 						<input type="number" step="0.1" value="<?php echo $ratio; ?>" class="form-control" name="step_value<?php echo $i;?>" id="step_value<?php echo $i;?>"></input>
 					</div>
 					<div class="discount_step__remove">
-						<button type="button" class="btn btn-sm btn_remove_step" data-for="step_key<?php echo $i;?>">Убрать</button>
+						<button type="button" class="btn btn-sm btn-danger btn_remove_step" data-for="step_key<?php echo $i;?>">
+						<i class="fa fa-trash fa-fw"></i>
+						Убрать
+						</button>
 					</div>
 				</div>
 				<?php $i++;} ?>
@@ -73,8 +76,11 @@
 						<label for="step_value<?php echo $i;?>">То коэффициент</label>
 						<input type="number" step="0.1" value="" class="form-control" name="step_value_new" id="step_value_new"></input>
 					</div>
-					<div class="discount_step__remove">
-						<button type="submit" class="btn btn-sm" id="btn_add_step">Добавить</button>
+					<div class="discount_step__add_new">
+						<button type="submit" class="btn btn-sm btn-primary" id="btn_add_step">
+							<i class="fa fa-plus fa-fw"></i>
+							Добавить
+						</button>
 					</div>
 				</div>
 			</div>
